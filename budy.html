@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Compagnon">
+<title>Compagnon</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; background: #14110f; color: #f3e9d8; font-family: ui-monospace, Menlo, monospace; overflow: hidden; }
+  #app { display: grid; grid-template-columns: 1.3fr 1fr; height: 100%; padding: 3vmin; gap: 3vmin; }
+  #scene { display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
+  #bubble { background: #f3e9d8; color: #2a211a; padding: 2vmin 3vmin; border-radius: 2vmin; font-size: 3vmin; max-width: 90%; text-align: center; position: relative; margin-bottom: 4vmin; min-height: 9vmin; display: flex; align-items: center; justify-content: center; }
+  #bubble::after { content: ''; position: absolute; bottom: -1.8vmin; left: 50%; margin-left: -1.8vmin; border: 1.8vmin solid transparent; border-top-color: #f3e9d8; border-bottom: 0; }
+  #pet { width: 40vmin; height: 40vmin; image-rendering: pixelated; animation: breathe 3s ease-in-out infinite; cursor: pointer; }
+  #pet.happy { animation: breathe 3s ease-in-out infinite, hop 0.5s ease-out; }
+  @keyframes breathe { 0%,100% { transform: scale(1, 1); } 50% { transform: scale(1.03, 0.97); } }
+  @keyframes hop { 0% { transform: translateY(0); } 40% { transform: translateY(-4vmin); } 100% { transform: translateY(0); } }
+  #panel { display: flex; flex-direction: column; gap: 2.5vmin; min-height: 0; }
+  #clock { font-size: 9vmin; font-weight: bold; color: #e0a84a; line-height: 1; }
+  #date { font-size: 2.6vmin; opacity: 0.7; margin-top: 0.5vmin; }
+  #energyWrap { background: #2a2420; border-radius: 1.5vmin; padding: 1.5vmin; }
+  #energyLabel { font-size: 2.2vmin; opacity: 0.8; margin-bottom: 1vmin; display: flex; justify-content: space-between; }
+  #energyBar { height: 3vmin; background: #14110f; border-radius: 1vmin; overflow: hidden; }
+  #energyFill { height: 100%; width: 50%; background: #e0a84a; transition: width 0.8s ease, background 0.8s ease; }
+  #tasks { flex: 1; overflow-y: auto; list-style: none; display: flex; flex-direction: column; gap: 1.2vmin; min-height: 0; }
+  .task { display: flex; align-items: center; gap: 1.5vmin; background: #2a2420; padding: 1.6vmin 2vmin; border-radius: 1.2vmin; font-size: 2.6vmin; }
+  .task.done { opacity: 0.45; text-decoration: line-through; }
+  .box { width: 3.2vmin; height: 3.2vmin; border: 0.4vmin solid #e0a84a; border-radius: 0.6vmin; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 2.4vmin; color: #14110f; }
+  .task.done .box { background: #e0a84a; }
+  #addRow { display: flex; gap: 1.5vmin; }
+  #newTask { flex: 1; background: #2a2420; border: 0.3vmin solid #3d342c; color: #f3e9d8; border-radius: 1.2vmin; padding: 1.6vmin 2vmin; font-size: 2.6vmin; font-family: inherit; -webkit-user-select: text; user-select: text; }
+  #addBtn { background: #e0a84a; color: #14110f; border: 0; border-radius: 1.2vmin; padding: 0 3vmin; font-size: 3vmin; font-weight: bold; font-family: inherit; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="scene">
+    <div id="bubble">...</div>
+    <svg id="pet" viewBox="0 0 16 16" shape-rendering="crispEdges">
+      <rect x="4" y="3" width="8" height="1" fill="#d9a441"/>
+      <rect x="3" y="4" width="10" height="8" fill="#d9a441"/>
+      <rect x="4" y="12" width="8" height="1" fill="#d9a441"/>
+      <rect x="4" y="10" width="8" height="2" fill="#c48f32"/>
+      <rect x="4" y="2" width="2" height="1" fill="#d9a441"/>
+      <rect x="10" y="2" width="2" height="1" fill="#d9a441"/>
+      <rect x="5" y="13" width="2" height="1" fill="#a8741f"/>
+      <rect x="9" y="13" width="2" height="1" fill="#a8741f"/>
+      <rect x="4" y="8" width="1" height="1" fill="#e8896a"/>
+      <rect x="11" y="8" width="1" height="1" fill="#e8896a"/>
+      <g id="eyes">
+        <rect id="eyeL" x="5" y="6" width="1" height="2" fill="#2a1a0c"/>
+        <rect id="eyeR" x="10" y="6" width="1" height="2" fill="#2a1a0c"/>
+      </g>
+      <g id="mouth"></g>
+    </svg>
+  </div>
+  <div id="panel">
+    <div>
+      <div id="clock">00:00</div>
+      <div id="date"></div>
+    </div>
+    <div id="energyWrap">
+      <div id="energyLabel"><span>Énergie</span><span id="energyPct">50%</span></div>
+      <div id="energyBar"><div id="energyFill"></div></div>
+    </div>
+    <ul id="tasks"></ul>
+    <div id="addRow">
+      <input id="newTask" type="text" placeholder="Nouvelle tâche..." enterkeyhint="done">
+      <button id="addBtn">+</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var KEY = 'compagnon_v1';
+  var state = load();
+
+  function load() {
+    try {
+      var s = JSON.parse(localStorage.getItem(KEY));
+      if (s && s.day === today()) return s;
+      var old = (s && s.tasks) || [{ t: 'Boire un verre d\'eau', d: false }, { t: 'Faire une pause', d: false }];
+      old.forEach(function (x) { x.d = false; });
+      return { day: today(), tasks: old, lastFed: Date.now() };
+    } catch (e) {
+      return { day: today(), tasks: [{ t: 'Boire un verre d\'eau', d: false }], lastFed: Date.now() };
+    }
+  }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+  function today() { return new Date().toISOString().slice(0, 10); }
+
+  var $ = function (id) { return document.getElementById(id); };
+  var bubble = $('bubble'), pet = $('pet'), mouth = $('mouth');
+  var eyeL = $('eyeL'), eyeR = $('eyeR');
+
+  function energy() {
+    var n = state.tasks.length;
+    if (n === 0) return 60;
+    var done = state.tasks.filter(function (x) { return x.d; }).length;
+    var base = Math.round((done / n) * 100);
+    var h = new Date().getHours();
+    var expected = Math.min(1, Math.max(0, (h - 8) / 12));
+    var retard = Math.max(0, expected - done / n);
+    return Math.max(5, Math.min(100, Math.round(base * 0.7 + 30 - retard * 40)));
+  }
+  function mood() {
+    var e = energy();
+    if (e >= 75) return 'joyeux';
+    if (e >= 45) return 'normal';
+    if (e >= 25) return 'fatigue';
+    return 'triste';
+  }
+
+  function setMouth(m) {
+    var c = '#2a1a0c', h = '';
+    if (m === 'joyeux') {
+      h = '<rect x="6" y="9" width="4" height="1" fill="' + c + '"/><rect x="7" y="10" width="2" height="1" fill="#e8896a"/>';
+    } else if (m === 'normal') {
+      h = '<rect x="7" y="9" width="2" height="1" fill="' + c + '"/>';
+    } else if (m === 'fatigue') {
+      h = '<rect x="7" y="10" width="2" height="1" fill="' + c + '"/>';
+    } else {
+      h = '<rect x="7" y="9" width="2" height="1" fill="' + c + '"/><rect x="6" y="10" width="1" height="1" fill="' + c + '"/><rect x="9" y="10" width="1" height="1" fill="' + c + '"/>';
+    }
+    mouth.innerHTML = h;
+  }
+
+  function render() {
+    var e = energy();
+    $('energyFill').style.width = e + '%';
+    $('energyFill').style.background = e >= 60 ? '#e0a84a' : e >= 30 ? '#d9822b' : '#b5452f';
+    $('energyPct').textContent = e + '%';
+    setMouth(mood());
+    var ul = $('tasks');
+    ul.innerHTML = '';
+    state.tasks.forEach(function (x, i) {
+      var li = document.createElement('li');
+      li.className = 'task' + (x.d ? ' done' : '');
+      li.innerHTML = '<div class="box">' + (x.d ? '✓' : '') + '</div><span></span>';
+      li.querySelector('span').textContent = x.t;
+      li.addEventListener('click', function () { toggle(i); });
+      li.addEventListener('contextmenu', function (ev) { ev.preventDefault(); remove(i); });
+      var pressTimer;
+      li.addEventListener('touchstart', function () { pressTimer = setTimeout(function () { remove(i); }, 900); });
+      li.addEventListener('touchend', function () { clearTimeout(pressTimer); });
+      li.addEventListener('touchmove', function () { clearTimeout(pressTimer); });
+      ul.appendChild(li);
+    });
+  }
+
+  function toggle(i) {
+    state.tasks[i].d = !state.tasks[i].d;
+    if (state.tasks[i].d) { state.lastFed = Date.now(); hop(); say('react_done'); }
+    save(); render();
+  }
+  function remove(i) {
+    state.tasks.splice(i, 1);
+    save(); render();
+  }
+  function add() {
+    var v = $('newTask').value.trim();
+    if (!v) return;
+    state.tasks.push({ t: v, d: false });
+    $('newTask').value = '';
+    save(); render(); say('react_add');
+  }
+  function hop() {
+    pet.classList.remove('happy');
+    void pet.offsetWidth;
+    pet.classList.add('happy');
+  }
+  $('addBtn').addEventListener('click', add);
+  $('newTask').addEventListener('keydown', function (e) { if (e.key === 'Enter') add(); });
+  pet.addEventListener('click', function () { hop(); say('poke'); });
+
+  var lines = {
+    joyeux: ['Quelle forme aujourd\'hui !', 'On est une super équipe.', 'Je me sens léger comme une plume.', 'Continue comme ça, boss.'],
+    normal: ['Tout va bien par ici.', 'Je suis là si tu as besoin.', 'Une petite tâche, peut-être ?', 'Il fait bon vivre.'],
+    fatigue: ['Je commence à avoir un petit creux...', 'Une tâche cochée me redonnerait de l\'énergie.', 'Hmm... je piquerais bien du nez.'],
+    triste: ['Je me sens tout vide...', 'On a un peu oublié des choses, non ?', 'Aide-moi, une seule tâche suffirait.'],
+    react_done: ['Miam, merci !', 'Ouiii, ça fait du bien !', 'Une de moins !', 'Bravo, je me sens plus fort.'],
+    react_add: ['Noté, je garde ça en tête.', 'Encore du travail ? Allez, courage.'],
+    poke: ['Hihi, ça chatouille !', 'Oui ?', 'Hé, doucement !', 'Je suis là, je suis là.'],
+    matin: ['Bonjour ! Prêt pour la journée ?', 'Un petit café et on y va.'],
+    soir: ['La journée touche à sa fin.', 'Tu as bien bossé aujourd\'hui.'],
+    nuit: ['Zzz... il est tard, non ?', 'Va te reposer un peu.']
+  };
+  var speakTimer;
+  function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
+  function say(kind) {
+    var arr;
+    if (kind === 'idle') {
+      var h = new Date().getHours();
+      if (h >= 23 || h < 6) arr = lines.nuit;
+      else if (h < 10 && Math.random() < 0.4) arr = lines.matin;
+      else if (h >= 19 && Math.random() < 0.4) arr = lines.soir;
+      else arr = lines[mood()];
+    } else arr = lines[kind];
+    bubble.textContent = pick(arr);
+    clearTimeout(speakTimer);
+    speakTimer = setTimeout(function () { say('idle'); }, 14000 + Math.random() * 8000);
+  }
+
+  function blink() {
+    eyeL.setAttribute('height', '1'); eyeR.setAttribute('height', '1');
+    eyeL.setAttribute('y', '7'); eyeR.setAttribute('y', '7');
+    setTimeout(function () {
+      eyeL.setAttribute('height', '2'); eyeR.setAttribute('height', '2');
+      eyeL.setAttribute('y', '6'); eyeR.setAttribute('y', '6');
+    }, 150);
+    setTimeout(blink, 2500 + Math.random() * 3500);
+  }
+  function look() {
+    var dx = Math.random() < 0.5 ? -0.5 : 0.5;
+    eyeL.setAttribute('x', 5 + dx); eyeR.setAttribute('x', 10 + dx);
+    setTimeout(function () { eyeL.setAttribute('x', 5); eyeR.setAttribute('x', 10); }, 1200);
+    setTimeout(look, 5000 + Math.random() * 6000);
+  }
+
+  function tick() {
+    var d = new Date();
+    $('clock').textContent = ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
+    $('date').textContent = d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+    if (state.day !== today()) { state = load(); save(); render(); }
+  }
+  setInterval(tick, 5000);
+  setInterval(render, 60000);
+
+  tick(); render(); blink(); look(); say('idle');
+})();
+</script>
+</body>
+</html>
